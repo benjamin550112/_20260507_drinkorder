@@ -17,23 +17,18 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+
+      # Step 1: Clean reinstall (workaround for npm optional deps bug #4828)
       - name: Install dependencies (clean reinstall)
         run: |
-          echo "Cleaning previous lock and node_modules"
           rm -f package-lock.json
           rm -rf node_modules
           npm install
 
-      - name: Install TailwindCSS native binding
-        run: npm install @tailwindcss/oxide@latest
+      # Step 2: Explicitly install the Linux x64 native binding for @tailwindcss/oxide
+      # npm often skips platform-specific optional packages; we force-install here.
+      - name: Fix TailwindCSS native binding (Linux x64)
+        run: npm install --save-dev @tailwindcss/oxide-linux-x64-gnu@4.3.0
 
       - name: Build project
         run: npm run build
@@ -43,5 +38,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          # optional: keep a clean history on the gh-pages branch
           force_orphan: true
