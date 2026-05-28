@@ -1,0 +1,6 @@
+{
+  "name": "Office Drink Ordering System",
+  "description": "A modern, card-based interface for office staff to conveniently order and track daily drinks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
