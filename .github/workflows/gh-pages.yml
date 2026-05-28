@@ -25,11 +25,15 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (clean reinstall)
+        run: |
+          echo "Cleaning previous lock and node_modules"
+          rm -f package-lock.json
+          rm -rf node_modules
+          npm install
 
-      - name: Rebuild native bindings
-        run: npm rebuild
+      - name: Install TailwindCSS native binding
+        run: npm install @tailwindcss/oxide@latest
 
       - name: Build project
         run: npm run build
