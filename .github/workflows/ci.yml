@@ -1,6 +1,6 @@
 name: CI
 
-# Trigger on push and pull request for any branch
+# Trigger on any push or PR to any branch
 on:
   push:
     branches: [ "*" ]
@@ -8,13 +8,12 @@ on:
     branches: [ "*" ]
 
 jobs:
-  # ======== Node.js 部分（如果您的專案使用 npm / Yarn） ========
+  # ---------- Node.js Test (optional) ----------
   node-test:
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.message, '[node]') || false
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -24,14 +23,13 @@ jobs:
       - name: Run tests
         run: npm test
 
-  # ======== Python 部分（如果您的專案使用 pip / Poetry） ========
+  # ---------- Python Test (optional) ----------
   python-test:
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.message, '[python]') || false
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Python
+      - uses: actions/checkout@v4
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -43,40 +41,34 @@ jobs:
         run: |
           if [ -f pytest.ini ] || [ -d tests ]; then pytest; else echo "No pytest configuration found"; fi
 
-  # ======== 一般建置與清理（可自行調整） ========
+  # ---------- Clean up (optional) ----------
   cleanup:
     runs-on: ubuntu-latest
     needs: [node-test, python-test]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - name: Clean up unnecessary files
         run: |
-          echo "此步驟可自行加入需要刪除的檔案或目錄，例如："
-          # rm -rf node_modules/.cache
-          # rm -rf __pycache__
-          # rm -rf .tmp
-          # 若不需要清理，直接刪除此步驟即可
+          echo "Add any clean‑up commands here, e.g. rm -rf __pycache__, node_modules/.cache, .tmp …"
 
-  # ======== Vercel 部署 ========
-  deploy-vercel:
+  # ---------- Build & Deploy to GitHub Pages ----------
+  deploy-pages:
     runs-on: ubuntu-latest
-    needs: [node-test, python-test]
+    needs: cleanup
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
       - name: Install dependencies
         run: npm ci
       - name: Build project
         run: npm run build
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v20
+      - name: Add .nojekyll file
+        run: touch dist/.nojekyll
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-args: "--prod"
-          working-directory: ./
-          # Ensure the output folder is correctly pointed if not default "dist"
-          # vercel-output-directory: "dist"
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
