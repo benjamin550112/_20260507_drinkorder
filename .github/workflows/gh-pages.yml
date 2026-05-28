@@ -18,20 +18,28 @@ jobs:
         with:
           node-version: '18'
 
-      # Step 1: Clean reinstall (workaround for npm optional deps bug #4828)
-      - name: Install dependencies (clean reinstall)
-        run: |
-          rm -f package-lock.json
-          rm -rf node_modules
-          npm install
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
 
-      # Step 2: Explicitly install the Linux x64 native binding for @tailwindcss/oxide
-      # npm often skips platform-specific optional packages; we force-install here.
-      - name: Fix TailwindCSS native binding (Linux x64)
-        run: npm install --save-dev @tailwindcss/oxide-linux-x64-gnu@4.3.0
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build project
-        run: npm run build
+        run: pnpm run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
